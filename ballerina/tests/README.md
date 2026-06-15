@@ -2,10 +2,6 @@
 
 ## Prerequisites
 
-You need a Hugging Face access token.
-
-To obtain this, refer to the [Hugging Face Settings](https://huggingface.co/settings/tokens).
-
 ## Test Environments
 
 The tests can run against two different environments:
@@ -30,6 +26,10 @@ Or using Gradle:
 ```
 
 ## Running Tests Against the Live Hugging Face API or a Custom TGI Instance
+
+### Prerequisites for Live API
+
+You need a Hugging Face access token. To obtain this, refer to the [Hugging Face Settings](https://huggingface.co/settings/tokens).
 
 ### Using a `Config.toml` File
 

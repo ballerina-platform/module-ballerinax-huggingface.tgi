@@ -11,6 +11,10 @@ on:
           - DEV CENTRAL
           - STAGE CENTRAL
 
+permissions:
+  contents: read
+  deployments: write
+
 jobs:
   call_workflow:
     name: Run Dev\Stage Central Publish Workflow

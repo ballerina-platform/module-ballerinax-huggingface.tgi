@@ -24,21 +24,17 @@ import ballerina/test;
 // Set the TGI service URL via an environment variable or use the default.
 // Export TGI_SERVICE_URL=http://<your-host>:8080 before running tests.
 // If no live server is available the mock service below will be used instead.
-configurable string serviceUrl = "http://localhost:8080";
+configurable string serviceUrl = "http://localhost:9090";
 
-// HuggingFace client (uses Bearer token auth — set token in Config.toml)
-configurable string token = ?;
+configurable string token = "";
 
-ConnectionConfig config = {
+ConnectionConfig config = token.length() > 0 ? {
     auth: {
         token: token
     }
-};
+} : {};
 
-Client hfClient = check new (config, "https://api-inference.huggingface.co");
-
-// Mock client (points at the local mock service for unit tests)
-Client tgiClient = check new ({}, "http://localhost:9090");
+Client tgiClient = check new (config, serviceUrl);
 
 // Health-check
 @test:Config {

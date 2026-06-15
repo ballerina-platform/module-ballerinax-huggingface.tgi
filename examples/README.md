@@ -35,8 +35,20 @@ Execute the following commands to build all the examples against the changes you
     ./build.sh build
     ```
 
+    On Windows:
+
+    ```batch
+    build.bat build
+    ```
+
 * To run all the examples:
 
     ```bash
     ./build.sh run
+    ```
+
+    On Windows:
+
+    ```batch
+    build.bat run
     ```
