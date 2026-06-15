@@ -1,0 +1,8 @@
+[package]
+distribution = "2201.13.4"
+org = "ballerinax"
+name = "token_counter"
+version = "0.1.0"
+
+[build-options]
+observabilityIncluded = true
