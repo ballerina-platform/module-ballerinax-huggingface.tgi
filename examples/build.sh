@@ -34,6 +34,11 @@ if [[ ! -f "$BAL_HOME_DIR/Ballerina.toml" ]]; then
 fi
 BAL_PACKAGE_NAME=$(awk -F'"' '/^name/ {print $2}' "$BAL_HOME_DIR/Ballerina.toml")
 
+if [[ -z "$BAL_PACKAGE_NAME" ]]; then
+  echo "Error: Failed to parse package name from $BAL_HOME_DIR/Ballerina.toml"
+  exit 1
+fi
+
 # Push the package to the local repository
 echo "Packing and pushing the Ballerina package..."
 cd "$BAL_HOME_DIR"
