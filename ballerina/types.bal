@@ -73,7 +73,7 @@ public type FunctionDefinition record {
 public type ConnectionConfig record {|
     # Authentication configuration for Hugging Face API.
     # Required for gated models (e.g., Llama) and private/dedicated TGI endpoints.
-    # Supports Bearer token authentication.
+    # Uses Bearer token authentication.
     # Example: { token: "hf_xxxx" }. Obtain your token at https://huggingface.co/settings/tokens
     @display {label: "HF Auth Config"}
     http:BearerTokenConfig auth?;
@@ -200,18 +200,22 @@ public type MessageChunkMessageChunkOneOf12 record {
     "image_url" 'type;
 };
 
-// Sanitization note: `*MessageBody` (record inclusion) was removed because `MessageBody` is a
-// union type (not a record), which is illegal for record inclusion in Ballerina.
-// The two body variants' fields are inlined here as optional fields instead.
-public type Message record {
+public type MessageWithContent record {
     # Message content (text string or array of content chunks)
-    MessageContent? content?;
-    # Tool calls made by the assistant (mutually exclusive with content)
-    @jsondata:Name {value: "tool_calls"}
-    ToolCall[]? toolCalls?;
+    MessageContent content;
     string role;
     string? name?;
 };
+
+public type MessageWithToolCalls record {
+    # Tool calls made by the assistant (mutually exclusive with content)
+    @jsondata:Name {value: "tool_calls"}
+    ToolCall[] toolCalls;
+    string role;
+    string? name?;
+};
+
+public type Message MessageWithContent|MessageWithToolCalls;
 
 public type CompletionRequest record {
     # An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the
