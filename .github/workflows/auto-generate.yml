@@ -11,7 +11,7 @@ on:
         description: "Ballerina version to use"
         required: false
         type: string
-        default: "2201.13.1"
+        default: "2201.12.0"
       distribution-zip:
         description: "Distribution URL of the Ballerina version to be used"
         required: false
@@ -28,9 +28,6 @@ on:
         type: boolean
         default: true
 
-permissions:
-  contents: read
-
 jobs:
   call_workflow:
     name: Run Auto-Generate Connector Workflow
@@ -43,3 +40,4 @@ jobs:
       distribution-zip: ${{ inputs.distribution-zip }}
       license-file: ${{ inputs.license-file }}
       quiet-mode: ${{ inputs.quiet-mode }}
+      

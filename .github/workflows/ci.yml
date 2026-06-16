@@ -9,10 +9,6 @@ on:
     types: check_connector_for_breaking_changes
   workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: read
-
 jobs:
   call_workflow:
     name: Run Connector Build Workflow
@@ -21,3 +17,4 @@ jobs:
     secrets: inherit
     with:
       repo-name: module-ballerinax-huggingface.tgi
+      

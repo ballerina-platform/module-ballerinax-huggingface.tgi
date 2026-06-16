@@ -1,5 +1,4 @@
-# module-ballerinax-huggingface.tgi
-Ballerina connector for Hugging Face Text Generation Inference (TGI)
+# Ballerina Hugging Face Text Generation Inference (TGI) Connector
 
 [![Build](https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi/actions/workflows/ci.yml/badge.svg)](https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi/actions/workflows/ci.yml)
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/ballerina-platform/module-ballerinax-huggingface.tgi.svg)](https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi/commits/main)
@@ -216,3 +215,4 @@ All contributors are encouraged to read the [Ballerina Code of Conduct](https://
 * For example demonstrations of the usage, go to [Ballerina By Examples](https://ballerina.io/learn/by-example/).
 * Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
 * Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
+* 

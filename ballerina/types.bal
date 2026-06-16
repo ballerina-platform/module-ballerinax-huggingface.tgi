@@ -71,8 +71,9 @@ public type FunctionDefinition record {
 # Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
 @display {label: "Connection Config"}
 public type ConnectionConfig record {|
-    # Bearer token configuration for Hugging Face authentication.
+    # Authentication configuration for Hugging Face API.
     # Required for gated models (e.g., Llama) and private/dedicated TGI endpoints.
+    # Supports Bearer token authentication.
     # Example: { token: "hf_xxxx" }. Obtain your token at https://huggingface.co/settings/tokens
     @display {label: "HF Auth Config"}
     http:BearerTokenConfig auth?;

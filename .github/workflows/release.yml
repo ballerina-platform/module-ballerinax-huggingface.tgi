@@ -5,9 +5,6 @@ on:
   repository_dispatch:
     types: [ stdlib-release-pipeline ]
 
-permissions:
-  contents: read
-
 jobs:
   call_workflow:
     name: Run Release Workflow
@@ -17,3 +14,4 @@ jobs:
     with:
       package-name: huggingface.tgi
       package-org: ballerinax
+      

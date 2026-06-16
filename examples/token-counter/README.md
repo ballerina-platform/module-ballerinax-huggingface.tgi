@@ -19,3 +19,4 @@ The example shows three test cases:
 1. **Short prompt** - Fits comfortably within context window
 2. **Medium prompt** - Fits but close to limit
 3. **Chat template tokenization** - Shows how chat messages are tokenized with the template applied
+   

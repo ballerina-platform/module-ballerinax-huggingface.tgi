@@ -16,29 +16,29 @@
 
 import ballerina/http;
 import ballerina/io;
+import ballerina/os;
 import ballerina/test;
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
-// Set the TGI service URL via an environment variable or use the default.
-// Export TGI_SERVICE_URL=http://<your-host>:8080 before running tests.
-// If no live server is available the mock service below will be used instead.
-configurable string serviceUrl = "http://localhost:9090";
+configurable boolean isLiveServer = os:getEnv("IS_LIVE_SERVER") == "true";
+configurable string token = isLiveServer ? os:getEnv("TGI_TOKEN") : "test";
+final string mockServiceUrl = "http://localhost:9090";
+final Client tgiClient = check initClient();
 
-configurable string token = "";
-
-ConnectionConfig config = token.length() > 0 ? {
-    auth: {
-        token: token
+function initClient() returns Client|error {
+    if isLiveServer {
+        return new ({auth: {token}}, serviceUrl);
     }
-} : {};
+    return new ({auth: {token}}, mockServiceUrl);
+}
 
-Client tgiClient = check new (config, serviceUrl);
+configurable string serviceUrl = "http://localhost:8080";
 
 // Health-check
 @test:Config {
-    groups: ["health"]
+    groups: ["live_tests", "mock_tests", "health"]
 }
 function testHealthCheck() returns error? {
     error? result = tgiClient->/health();
@@ -47,7 +47,7 @@ function testHealthCheck() returns error? {
 
 // Model info  —  GET /info
 @test:Config {
-    groups: ["info"]
+    groups: ["live_tests", "mock_tests", "info"]
 }
 function testGetModelInfo() returns error? {
     Info info = check tgiClient->/info();
@@ -60,7 +60,7 @@ function testGetModelInfo() returns error? {
 
 // OpenAI model info  —  GET /v1/models
 @test:Config {
-    groups: ["info"]
+    groups: ["live_tests", "mock_tests", "info"]
 }
 function testGetOpenAIModelInfo() returns error? {
     ModelInfo modelInfo = check tgiClient->/v1/models();
@@ -71,7 +71,7 @@ function testGetOpenAIModelInfo() returns error? {
 
 // Token generation  —  POST /generate  (basic)
 @test:Config {
-    groups: ["generate"]
+    groups: ["live_tests", "mock_tests", "generate"]
 }
 function testGenerateBasic() returns error? {
     GenerateRequest req = {
@@ -89,7 +89,7 @@ function testGenerateBasic() returns error? {
 
 // Token generation  —  POST /generate  (with details)
 @test:Config {
-    groups: ["generate"]
+    groups: ["live_tests", "mock_tests", "generate"]
 }
 function testGenerateWithDetails() returns error? {
     GenerateRequest req = {
@@ -106,7 +106,7 @@ function testGenerateWithDetails() returns error? {
 
 // Token generation  —  POST /generate  (with sampling params)
 @test:Config {
-    groups: ["generate"]
+    groups: ["live_tests", "mock_tests", "generate"]
 }
 function testGenerateWithSamplingParams() returns error? {
     GenerateRequest req = {
@@ -127,7 +127,7 @@ function testGenerateWithSamplingParams() returns error? {
 
 // Token generation  —  POST /generate  (stop sequences)
 @test:Config {
-    groups: ["generate"]
+    groups: ["live_tests", "mock_tests", "generate"]
 }
 function testGenerateWithStopSequences() returns error? {
     GenerateRequest req = {
@@ -143,7 +143,7 @@ function testGenerateWithStopSequences() returns error? {
 
 // Compat generate  —  POST /
 @test:Config {
-    groups: ["generate"]
+    groups: ["live_tests", "mock_tests", "generate"]
 }
 function testCompatGenerate() returns error? {
     CompatGenerateRequest req = {
@@ -158,7 +158,7 @@ function testCompatGenerate() returns error? {
 
 // Streaming  —  POST /generate_stream
 @test:Config {
-    groups: ["streaming"]
+    groups: ["live_tests", "mock_tests", "streaming"]
 }
 function testGenerateStream() returns error? {
     GenerateRequest req = {
@@ -177,7 +177,7 @@ function testGenerateStream() returns error? {
 
 // Tokenize  —  POST /tokenize
 @test:Config {
-    groups: ["tokenize"]
+    groups: ["live_tests", "mock_tests", "tokenize"]
 }
 function testTokenize() returns error? {
     GenerateRequest req = {inputs: "hello world"};
@@ -193,7 +193,7 @@ function testTokenize() returns error? {
 
 // Chat tokenize  —  POST /chat_tokenize
 @test:Config {
-    groups: ["tokenize"]
+    groups: ["live_tests", "mock_tests", "tokenize"]
 }
 function testChatTokenize() returns error? {
     ChatRequest chatReq = {
@@ -208,7 +208,7 @@ function testChatTokenize() returns error? {
 
 // Chat completions  —  POST /v1/chat/completions  (basic)
 @test:Config {
-    groups: ["chat"]
+    groups: ["live_tests", "mock_tests", "chat"]
 }
 function testChatCompletionsBasic() returns error? {
     ChatRequest req = {
@@ -227,7 +227,7 @@ function testChatCompletionsBasic() returns error? {
 
 // Chat completions  —  multi-turn conversation
 @test:Config {
-    groups: ["chat"]
+    groups: ["live_tests", "mock_tests", "chat"]
 }
 function testChatCompletionsMultiTurn() returns error? {
     ChatRequest req = {
@@ -246,7 +246,7 @@ function testChatCompletionsMultiTurn() returns error? {
 
 // Chat completions  —  usage stats present
 @test:Config {
-    groups: ["chat"]
+    groups: ["live_tests", "mock_tests", "chat"]
 }
 function testChatCompletionsUsage() returns error? {
     ChatRequest req = {
@@ -264,7 +264,7 @@ function testChatCompletionsUsage() returns error? {
 
 // Chat completions  —  with tools (function calling)
 @test:Config {
-    groups: ["chat", "tools"]
+    groups: ["live_tests", "mock_tests", "chat", "tools"]
 }
 function testChatCompletionsWithTools() returns error? {
     Tool weatherTool = {
@@ -294,7 +294,7 @@ function testChatCompletionsWithTools() returns error? {
 
 // Chat completions  —  with logprobs
 @test:Config {
-    groups: ["chat"]
+    groups: ["live_tests", "mock_tests", "chat"]
 }
 function testChatCompletionsWithLogprobs() returns error? {
     ChatRequest req = {
@@ -309,7 +309,7 @@ function testChatCompletionsWithLogprobs() returns error? {
 
 // Legacy completions  —  POST /v1/completions
 @test:Config {
-    groups: ["completions"]
+    groups: ["live_tests", "mock_tests", "completions"]
 }
 function testCompletions() returns error? {
     CompletionRequest req = {

@@ -6,11 +6,6 @@ concurrency:
 
 on: pull_request
 
-permissions:
-  contents: read
-  pull-requests: read
-  checks: write
-
 jobs:
   call_workflow:
     name: Run PR Build Workflow
@@ -19,3 +14,4 @@ jobs:
     secrets: inherit
     with:
       additional-test-flags: ${{ github.event.pull_request.head.repo.full_name != github.repository && '-x test' || ''}}
+      

@@ -11,10 +11,6 @@ on:
           - DEV CENTRAL
           - STAGE CENTRAL
 
-permissions:
-  contents: read
-  deployments: write
-
 jobs:
   call_workflow:
     name: Run Dev\Stage Central Publish Workflow
@@ -23,3 +19,4 @@ jobs:
     secrets: inherit
     with:
       environment: ${{ github.event.inputs.environment }}
+      

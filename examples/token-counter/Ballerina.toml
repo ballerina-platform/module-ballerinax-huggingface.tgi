@@ -1,5 +1,5 @@
 [package]
-distribution = "2201.13.4"
+distribution = "2201.12.0"
 org = "ballerinax"
 name = "token_counter"
 version = "0.1.0"
