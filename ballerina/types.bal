@@ -200,20 +200,20 @@ public type MessageChunkMessageChunkOneOf12 record {
     "image_url" 'type;
 };
 
-public type MessageWithContent record {
+public type MessageWithContent record {|
     # Message content (text string or array of content chunks)
     MessageContent content;
     string role;
     string? name?;
-};
+|};
 
-public type MessageWithToolCalls record {
+public type MessageWithToolCalls record {|
     # Tool calls made by the assistant (mutually exclusive with content)
     @jsondata:Name {value: "tool_calls"}
     ToolCall[] toolCalls;
     string role;
     string? name?;
-};
+|};
 
 public type Message MessageWithContent|MessageWithToolCalls;
 
