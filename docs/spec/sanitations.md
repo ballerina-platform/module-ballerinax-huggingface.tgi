@@ -1,6 +1,6 @@
-_Author_: Hasitha Erandika \
+_Author_: @HasithaErandika \
 _Created_: 2026-06-10 \
-_Updated_: 2026-06-10 \
+_Updated_: 2026-06-17 \
 _Edition_: Swan Lake
 
 # Sanitation for OpenAPI specification
@@ -139,3 +139,48 @@ bal openapi -i docs/spec/openapi.json --mode client --license docs/license.txt -
 ```
 
 Note: The license year is hardcoded to 2024 in the generated header; update if necessary.
+
+---
+
+## Sanitization 5 — Refactor Message type to enforce oneOf constraint (`types.bal`)
+
+**File:** `ballerina/types.bal`
+**Record:** `Message`
+
+**Before:**
+```ballerina
+// Sanitization note: `*MessageBody` (record inclusion) was removed because `MessageBody` is a
+// union type (not a record), which is illegal for record inclusion in Ballerina.
+// The two body variants' fields are inlined here as optional fields instead.
+public type Message record {
+    # Message content (text string or array of content chunks)
+    MessageContent? content?;
+    # Tool calls made by the assistant (mutually exclusive with content)
+    @jsondata:Name {value: "tool_calls"}
+    ToolCall[]? toolCalls?;
+    string role;
+    string? name?;
+};
+```
+
+**After:**
+```ballerina
+public type MessageWithContent record {
+    # Message content (text string or array of content chunks)
+    MessageContent content;
+    string role;
+    string? name?;
+};
+
+public type MessageWithToolCalls record {
+    # Tool calls made by the assistant (mutually exclusive with content)
+    @jsondata:Name {value: "tool_calls"}
+    ToolCall[] toolCalls;
+    string role;
+    string? name?;
+};
+
+public type Message MessageWithContent|MessageWithToolCalls;
+```
+
+**Reason:** The auto-generated Message type used optional fields for both `content` and `toolCalls`, violating the OpenAPI oneOf contract which requires exactly one of these fields to be present. This refactoring enforces the mutual exclusivity at the type level using a union type, ensuring developers cannot accidentally provide both or neither field.
