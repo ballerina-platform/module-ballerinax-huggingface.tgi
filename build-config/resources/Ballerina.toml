@@ -8,16 +8,18 @@ authors = ["Ballerina"]
 keywords = [
     "AI/Chat",
     "AI/Text Generation",
-    "HuggingFace",
+    "AI/LLM",
+    "Hugging Face",
     "TGI",
-    "LLM",
-    "OpenAI Compatible",
+    "OpenAI-Compatible",
     "Streaming",
     "Inference",
     "Llama",
     "Mistral",
-    "Vendor/HuggingFace",
-    "Cost/Free"
+    "Vendor/Hugging Face",
+    "Cost/Free",
+    "Type/Connector",
+    "Name/Hugging Face TGI Connector"
 ]
 repository = "https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi"
 
