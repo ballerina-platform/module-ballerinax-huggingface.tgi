@@ -30,10 +30,19 @@ To use the Hugging Face TGI connector, you need a Hugging Face account and an AP
 
 ### Step 3: Choose a Model Endpoint
 
+You can connect to Hugging Face serverless inference or deploy your own TGI instance.
+
+| Base URL | What works |
+|---|---|
+| `https://router.huggingface.co` | OpenAI-style `/v1/chat/completions`, `/v1/models` |
+| `https://router.huggingface.co/hf-inference` | Full TGI API: `/generate`, `/health`, `/info`, `/tokenize`, `/v1/chat/completions`, etc. |
+
+> **Note:** The legacy `https://api-inference.huggingface.co` endpoint has been decommissioned and no longer resolves.
+
 You can either:
 
-- Use the **Hugging Face Inference API** at `https://api-inference.huggingface.co` for serverless inference on hosted models.
-- Deploy your own **TGI instance** and point the connector at your own service URL.
+- Use **Hugging Face Inference Providers** at `https://router.huggingface.co/hf-inference` for serverless inference on hosted models (requires a token with Inference Providers permission).
+- Deploy your own **TGI instance** and point the connector at your service URL.
 
 ## Quickstart
 
@@ -49,13 +58,14 @@ import ballerinax/huggingface.tgi;
 
 ### Step 2: Instantiate a new connector
 
-1. Create a `Config.toml` file and configure the obtained token as follows:
+1. Create a `Config.toml` file and configure the token and service URL as follows:
 
 ```toml
 token = "<Your Hugging Face API Token>"
+serviceUrl = "https://router.huggingface.co/hf-inference"
 ```
 
-2. Initialize the connector using `tgi:ConnectionConfig` with the access token.
+2. Initialize the connector using `tgi:ConnectionConfig` with the access token. When `serviceUrl` is omitted, the client defaults to `https://router.huggingface.co/hf-inference`.
 
 ```ballerina
 configurable string token = ?;
@@ -77,6 +87,7 @@ Now, utilize the available connector operations.
 public function main() returns error? {
     tgi:ChatCompletion completion = check hfClient->/v1/chat/completions.post({
         messages: [{role: "user", content: "What is Deep Learning?"}],
+        model: "meta-llama/Llama-3.1-8B-Instruct",
         temperature: 0.7
     });
 }

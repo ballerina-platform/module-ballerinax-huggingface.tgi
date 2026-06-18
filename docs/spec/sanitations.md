@@ -167,7 +167,7 @@ public isolated function init(string serviceUrl, ConnectionConfig config = {}) r
 
 **After:**
 ```ballerina
-public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://router.huggingface.co") returns error? {
+public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://router.huggingface.co/hf-inference") returns error? {
     http:ClientConfiguration httpClientConfig = {
         auth: config.auth,
         httpVersion: config.httpVersion,
@@ -195,7 +195,7 @@ public isolated function init(ConnectionConfig config = {}, string serviceUrl = 
 
 1. **Parameter order swapped** — `ConnectionConfig config = {}` is now the first parameter and `string serviceUrl` the second. This allows `serviceUrl` to carry a meaningful default value; in Ballerina, a required parameter (`string serviceUrl` with no default) cannot appear after an optional one (`config = {}`), so the order must be `config` first, `serviceUrl` second.
 
-2. **Default `serviceUrl` updated** — Changed from no default (required parameter) to `"https://router.huggingface.co"`. The Hugging Face Inference API has migrated to the router endpoint; the old `api-inference.huggingface.co` endpoint does not resolve for the tested models.
+2. **Default `serviceUrl` updated** — Changed from no default (required parameter) to `"https://router.huggingface.co/hf-inference"`. The Hugging Face Inference API has migrated to the router endpoint; the old `api-inference.huggingface.co` endpoint does not resolve. Use `https://router.huggingface.co/hf-inference` for the full TGI API (`/generate`, `/health`, `/info`, `/tokenize`, `/v1/chat/completions`, etc.). Use `https://router.huggingface.co` for OpenAI-style endpoints only (`/v1/chat/completions`, `/v1/models`).
 
 3. **`http:ClientConfiguration` reformatted to multiline** — The single-line initializer was expanded to one field per line for readability, and `auth: config.auth` was added as part of Sanitization 4.
 

@@ -7,6 +7,12 @@ The `ballerinax/huggingface.tgi` connector provides practical examples illustrat
 
 ## Prerequisites
 
+| Base URL | What works |
+|---|---|
+| `https://router.huggingface.co` | OpenAI-style `/v1/chat/completions`, `/v1/models` |
+| `https://router.huggingface.co/hf-inference` | Full TGI API: `/generate`, `/health`, `/info`, `/tokenize`, `/v1/chat/completions`, etc. |
+
+Each example requires a `Config.toml` with `serviceUrl` and, for Hugging Face serverless inference, a `token`. See the individual example READMEs for details.
 ## Running an example
 
 Execute the following commands to build an example from the source:

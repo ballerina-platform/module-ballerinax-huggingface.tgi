@@ -19,8 +19,12 @@
 // need maximum control over the generation process beyond the chat interface.
 //
 // ## Prerequisites
-// - A running TGI instance
-// - Set `serviceUrl` in Config.toml
+// - A running TGI instance, or Hugging Face Inference Providers
+// - Set `serviceUrl` and `token` in Config.toml:
+//   ```toml
+//   token = "<Your Hugging Face API Token>"
+//   serviceUrl = "https://router.huggingface.co/hf-inference"
+//   ```
 //
 // ## Run the example
 // ```bash
@@ -30,7 +34,8 @@
 import ballerina/io;
 import ballerinax/huggingface.tgi;
 
-configurable string serviceUrl = "http://localhost:8080";
+configurable string token = ?;
+configurable string serviceUrl = "https://router.huggingface.co/hf-inference";
 
 // Generates text for a given prompt with configurable parameters
 function generateText(tgi:Client tgiClient, string prompt,
@@ -56,7 +61,7 @@ function generateText(tgi:Client tgiClient, string prompt,
 }
 
 public function main() returns error? {
-    tgi:Client tgiClient = check new ({}, serviceUrl);
+    tgi:Client tgiClient = check new ({auth: {token}}, serviceUrl);
 
     io:println("=== HuggingFace TGI Text Generation ===\n");
 

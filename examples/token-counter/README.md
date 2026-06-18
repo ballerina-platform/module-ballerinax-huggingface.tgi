@@ -4,8 +4,15 @@ This example demonstrates how to use the `/tokenize` and `/info` endpoints to co
 
 ## Prerequisites
 
-- A running TGI instance
-- Set `serviceUrl` in `Config.toml`
+- A running TGI instance, or Hugging Face Inference Providers at `https://router.huggingface.co/hf-inference`
+- Set `serviceUrl` and `token` in `Config.toml`:
+
+```toml
+token = "<Your Hugging Face API Token>"
+serviceUrl = "https://router.huggingface.co/hf-inference"
+```
+
+> **Note:** The legacy `https://api-inference.huggingface.co` endpoint has been decommissioned. See the [base URL guide](../../README.md#step-3-choose-a-model-endpoint) for details on router endpoints.
 
 ## Running the example
 

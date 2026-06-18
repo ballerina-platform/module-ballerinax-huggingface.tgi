@@ -34,7 +34,8 @@ function initClient() returns Client|error {
     return new ({auth: {token}}, mockServiceUrl);
 }
 
-configurable string serviceUrl = "http://localhost:8080";
+configurable string serviceUrl = "https://router.huggingface.co/hf-inference";
+configurable string modelId = "tgi";
 
 // Health-check
 @test:Config {
@@ -198,7 +199,7 @@ function testTokenize() returns error? {
 function testChatTokenize() returns error? {
     ChatRequest chatReq = {
         messages: [{role: "user", content: "What is Deep Learning?"}],
-        model: "tgi"
+        model: modelId
     };
     ChatTokenizeResponse resp = check tgiClient->/chat_tokenize.post(chatReq);
     test:assertNotEquals(resp.templatedText, "", "Templated text should not be empty");
@@ -213,7 +214,7 @@ function testChatTokenize() returns error? {
 function testChatCompletionsBasic() returns error? {
     ChatRequest req = {
         messages: [{role: "user", content: "What is Deep Learning?"}],
-        model: "tgi",
+        model: modelId,
         maxTokens: 128,
         temperature: 0.7,
         topP: 0.95
@@ -237,7 +238,7 @@ function testChatCompletionsMultiTurn() returns error? {
             {role: "assistant", content: "The capital of France is Paris."},
             {role: "user", content: "What is it known for?"}
         ],
-        model: "tgi",
+        model: modelId,
         maxTokens: 64
     };
     ChatCompletion completion = check tgiClient->/v1/chat/completions.post(req);
@@ -251,6 +252,7 @@ function testChatCompletionsMultiTurn() returns error? {
 function testChatCompletionsUsage() returns error? {
     ChatRequest req = {
         messages: [{role: "user", content: "Say hello."}],
+        model: modelId,
         maxTokens: 10
     };
     ChatCompletion completion = check tgiClient->/v1/chat/completions.post(req);
@@ -284,6 +286,7 @@ function testChatCompletionsWithTools() returns error? {
     };
     ChatRequest req = {
         messages: [{role: "user", content: "What's the weather like in Paris?"}],
+        model: modelId,
         tools: [weatherTool],
         toolChoice: "auto",
         maxTokens: 128
@@ -299,6 +302,7 @@ function testChatCompletionsWithTools() returns error? {
 function testChatCompletionsWithLogprobs() returns error? {
     ChatRequest req = {
         messages: [{role: "user", content: "Say one word."}],
+        model: modelId,
         maxTokens: 5,
         logprobs: true,
         topLogprobs: 3
@@ -314,6 +318,7 @@ function testChatCompletionsWithLogprobs() returns error? {
 function testCompletions() returns error? {
     CompletionRequest req = {
         prompt: ["Deep learning is"],
+        model: modelId,
         maxTokens: 20,
         temperature: 0.7
     };
