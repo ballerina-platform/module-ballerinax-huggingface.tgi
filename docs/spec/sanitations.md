@@ -1,6 +1,6 @@
 _Author_: @HasithaErandika \
 _Created_: 2026-06-10 \
-_Updated_: 2026-06-17 \
+_Updated_: 2026-06-18 \
 _Edition_: Swan Lake
 
 # Sanitation for OpenAPI specification
@@ -151,6 +151,125 @@ public type Message MessageWithContent|MessageWithToolCalls;
 
 **Reason:**  
 The auto-generated `Message` record used `*MessageBody` (record inclusion), but `MessageBody` is a union type (`MessageBodyOneOf1|MessageBodyMessageBodyOneOf12`), which is illegal for record inclusion in Ballerina. This sanitization removes the illegal inclusion and replaces `Message` with two closed, mutually exclusive records and a union alias, properly enforcing the OpenAPI `oneOf` constraint: a message carries either `content` or `tool_calls`, never both.
+
+---
+
+## Sanitization 6 - Update default serviceUrl, swap parameter order in `Client.init` (`client.bal`)
+
+**File:** `ballerina/client.bal`  
+**Function:** `Client.init`
+
+**Before:**
+```ballerina
+public isolated function init(string serviceUrl, ConnectionConfig config = {}) returns error? {
+    http:ClientConfiguration httpClientConfig = {httpVersion: config.httpVersion, http1Settings: config.http1Settings, http2Settings: config.http2Settings, timeout: config.timeout, forwarded: config.forwarded, followRedirects: config.followRedirects, poolConfig: config.poolConfig, cache: config.cache, compression: config.compression, circuitBreaker: config.circuitBreaker, retryConfig: config.retryConfig, cookieConfig: config.cookieConfig, responseLimits: config.responseLimits, secureSocket: config.secureSocket, proxy: config.proxy, socketConfig: config.socketConfig, validation: config.validation, laxDataBinding: config.laxDataBinding};
+```
+
+**After:**
+```ballerina
+public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://router.huggingface.co") returns error? {
+    http:ClientConfiguration httpClientConfig = {
+        auth: config.auth,
+        httpVersion: config.httpVersion,
+        http1Settings: config.http1Settings,
+        http2Settings: config.http2Settings,
+        timeout: config.timeout,
+        forwarded: config.forwarded,
+        followRedirects: config.followRedirects,
+        poolConfig: config.poolConfig,
+        cache: config.cache,
+        compression: config.compression,
+        circuitBreaker: config.circuitBreaker,
+        retryConfig: config.retryConfig,
+        cookieConfig: config.cookieConfig,
+        responseLimits: config.responseLimits,
+        secureSocket: config.secureSocket,
+        proxy: config.proxy,
+        socketConfig: config.socketConfig,
+        validation: config.validation,
+        laxDataBinding: config.laxDataBinding
+    };
+```
+
+**Reason:** Three related changes were made together:
+
+1. **Parameter order swapped** — `ConnectionConfig config = {}` is now the first parameter and `string serviceUrl` the second. This allows `serviceUrl` to carry a meaningful default value; in Ballerina, a required parameter (`string serviceUrl` with no default) cannot appear after an optional one (`config = {}`), so the order must be `config` first, `serviceUrl` second.
+
+2. **Default `serviceUrl` updated** — Changed from no default (required parameter) to `"https://router.huggingface.co"`. The Hugging Face Inference API has migrated to the router endpoint; the old `api-inference.huggingface.co` endpoint does not resolve for the tested models.
+
+3. **`http:ClientConfiguration` reformatted to multiline** — The single-line initializer was expanded to one field per line for readability, and `auth: config.auth` was added as part of Sanitization 4.
+
+---
+
+## Sanitization 7 - Change HTTP version default to HTTP/1.1 (`types.bal`)
+
+**File:** `ballerina/types.bal`
+**Record:** `ConnectionConfig`
+**Field:** `httpVersion`
+
+**Before:**
+```ballerina
+http:HttpVersion httpVersion = http:HTTP_2_0;
+```
+
+**After:**
+```ballerina
+http:HttpVersion httpVersion = http:HTTP_1_1;
+```
+
+**Reason:** The Hugging Face router endpoint does not support HTTP/2, causing connection failures when the default HTTP/2 configuration is used.
+
+---
+
+## Sanitization 8 - Make systemFingerprint nullable in ChatCompletion and CompletionFinal (`types.bal`)
+
+**File:** `ballerina/types.bal`
+**Records:** `ChatCompletion`, `CompletionFinal`
+**Field:** `systemFingerprint`
+
+**Before:**
+```ballerina
+@jsondata:Name {value: "system_fingerprint"}
+string systemFingerprint;
+```
+
+**After:**
+```ballerina
+@jsondata:Name {value: "system_fingerprint"}
+string? systemFingerprint;
+```
+
+**Reason:** The Hugging Face router returns `null` for `system_fingerprint` in the response for several models (Llama-3.1, gpt-oss, Qwen3), causing deserialization errors or data loss when the field is non-nullable.
+
+---
+
+## Sanitization 9 - Make TextMessage.content nullable (`types.bal`)
+
+**File:** `ballerina/types.bal`
+**Record:** `TextMessage`
+**Field:** `content`
+
+**Before:**
+```ballerina
+public type TextMessage record {
+    string role;
+    @jsondata:Name {value: "tool_call_id"}
+    string? toolCallId?;
+    string content;
+};
+```
+
+**After:**
+```ballerina
+public type TextMessage record {
+    string role;
+    @jsondata:Name {value: "tool_call_id"}
+    string? toolCallId?;
+    string? content?;
+};
+```
+
+**Reason:** When a tool call is returned in a chat completion response, the `content` field may be `null` (OpenAI API spec). This change allows proper deserialization of tool-calling responses.
 
 ---
 

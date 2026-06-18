@@ -12,7 +12,7 @@ public isolated client class Client {
     # + config - The configurations to be used when initializing the `connector` 
     # + serviceUrl - URL of the target service 
     # + return - An error if connector initialization failed 
-    public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://api-inference.huggingface.co") returns error? {
+    public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://router.huggingface.co") returns error? {
         http:ClientConfiguration httpClientConfig = {
             auth: config.auth,
             httpVersion: config.httpVersion,

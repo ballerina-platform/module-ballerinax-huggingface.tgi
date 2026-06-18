@@ -78,7 +78,7 @@ public type ConnectionConfig record {|
     @display {label: "HF Auth Config"}
     http:BearerTokenConfig auth?;
     # The HTTP version understood by the client
-    http:HttpVersion httpVersion = http:HTTP_2_0;
+    http:HttpVersion httpVersion = http:HTTP_1_1;
     # Configurations related to HTTP/1.x protocol
     http:ClientHttp1Settings http1Settings = {};
     # Configurations related to HTTP/2 protocol
@@ -140,7 +140,7 @@ public type ChatCompletion record {
     string id;
     ChatCompletionComplete[] choices;
     @jsondata:Name {value: "system_fingerprint"}
-    string systemFingerprint;
+    string? systemFingerprint;
 };
 
 public type Details record {
@@ -178,7 +178,7 @@ public type TextMessage record {
     string role;
     @jsondata:Name {value: "tool_call_id"}
     string? toolCallId?;
-    string content;
+    string? content?;
 };
 
 public type ModelInfo record {
@@ -360,7 +360,7 @@ public type CompletionFinal record {
     string id;
     CompletionComplete[] choices;
     @jsondata:Name {value: "system_fingerprint"}
-    string systemFingerprint;
+    string? systemFingerprint;
 };
 
 public type GenerateParameters record {
