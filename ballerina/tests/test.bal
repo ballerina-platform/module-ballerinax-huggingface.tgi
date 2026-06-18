@@ -29,9 +29,9 @@ final Client tgiClient = check initClient();
 
 function initClient() returns Client|error {
     if isLiveServer {
-        return new ({auth: {token}}, serviceUrl);
+        return new (serviceUrl, {auth: {token}});
     }
-    return new ({auth: {token}}, mockServiceUrl);
+    return new (mockServiceUrl, {auth: {token}});
 }
 
 configurable string serviceUrl = "https://router.huggingface.co/hf-inference";
@@ -274,7 +274,7 @@ function testChatCompletionsWithTools() returns error? {
         'function: {
             name: "get_current_weather",
             description: "Get the current weather in a given location",
-            arguments: {
+            parameters: {
                 'type: "object",
                 properties: {
                     location: {'type: "string", description: "The city and state, e.g. San Francisco, CA"},

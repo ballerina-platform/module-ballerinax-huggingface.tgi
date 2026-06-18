@@ -65,7 +65,8 @@ public type FunctionName record {
 public type FunctionDefinition record {
     string name;
     string? description?;
-    anydata arguments;
+    @jsondata:Name {value: "parameters"}
+    anydata parameters;
 };
 
 # Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
@@ -78,7 +79,7 @@ public type ConnectionConfig record {|
     @display {label: "HF Auth Config"}
     http:BearerTokenConfig auth?;
     # The HTTP version understood by the client
-    http:HttpVersion httpVersion = http:HTTP_1_1;
+    http:HttpVersion httpVersion = http:HTTP_2_0;
     # Configurations related to HTTP/1.x protocol
     http:ClientHttp1Settings http1Settings = {};
     # Configurations related to HTTP/2 protocol

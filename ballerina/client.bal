@@ -9,14 +9,12 @@ public isolated client class Client {
     final http:Client clientEp;
     # Gets invoked to initialize the `connector`.
     #
+    # + serviceUrl - URL of the target service. 
+    #                Recommended: `https://router.huggingface.co/hf-inference` for the full TGI API,
+    #                or `https://router.huggingface.co` for OpenAI-style endpoints only.
     # + config - The configurations to be used when initializing the `connector` 
-    # + serviceUrl - URL of the target service. Defaults to the Hugging Face HF Inference
-    #                  TGI endpoint (`https://router.huggingface.co/hf-inference`), which
-    #                  supports the full TGI API (`/generate`, `/health`, `/info`, `/tokenize`,
-    #                  `/v1/chat/completions`, etc.). For OpenAI-style endpoints only
-    #                  (`/v1/chat/completions`, `/v1/models`), use `https://router.huggingface.co`.
     # + return - An error if connector initialization failed 
-    public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://router.huggingface.co/hf-inference") returns error? {
+    public isolated function init(string serviceUrl, ConnectionConfig config = {}) returns error? {
         http:ClientConfiguration httpClientConfig = {
             auth: config.auth,
             httpVersion: config.httpVersion,

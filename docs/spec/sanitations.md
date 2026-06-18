@@ -154,7 +154,7 @@ The auto-generated `Message` record used `*MessageBody` (record inclusion), but 
 
 ---
 
-## Sanitization 6 - Update default serviceUrl, swap parameter order in `Client.init` (`client.bal`)
+## Sanitization 6 - Swap parameter order and make serviceUrl required in `Client.init` (`client.bal`)
 
 **File:** `ballerina/client.bal`  
 **Function:** `Client.init`
@@ -167,7 +167,7 @@ public isolated function init(string serviceUrl, ConnectionConfig config = {}) r
 
 **After:**
 ```ballerina
-public isolated function init(ConnectionConfig config = {}, string serviceUrl = "https://router.huggingface.co/hf-inference") returns error? {
+public isolated function init(ConnectionConfig config = {}, string serviceUrl) returns error? {
     http:ClientConfiguration httpClientConfig = {
         auth: config.auth,
         httpVersion: config.httpVersion,
@@ -193,35 +193,15 @@ public isolated function init(ConnectionConfig config = {}, string serviceUrl = 
 
 **Reason:** Three related changes were made together:
 
-1. **Parameter order swapped** — `ConnectionConfig config = {}` is now the first parameter and `string serviceUrl` the second. This allows `serviceUrl` to carry a meaningful default value; in Ballerina, a required parameter (`string serviceUrl` with no default) cannot appear after an optional one (`config = {}`), so the order must be `config` first, `serviceUrl` second.
+1. **Parameter order swapped** — `ConnectionConfig config = {}` is now the first parameter and `string serviceUrl` the second. This is because in Ballerina, a required parameter (`string serviceUrl` with no default) cannot appear after an optional one (`config = {}`), so the order must be `config` first, `serviceUrl` second.
 
-2. **Default `serviceUrl` updated** — Changed from no default (required parameter) to `"https://router.huggingface.co/hf-inference"`. The Hugging Face Inference API has migrated to the router endpoint; the old `api-inference.huggingface.co` endpoint does not resolve. Use `https://router.huggingface.co/hf-inference` for the full TGI API (`/generate`, `/health`, `/info`, `/tokenize`, `/v1/chat/completions`, etc.). Use `https://router.huggingface.co` for OpenAI-style endpoints only (`/v1/chat/completions`, `/v1/models`).
+2. **`serviceUrl` is now required with no default** — The default value has been removed, making `serviceUrl` a required parameter. The recommended endpoint URLs are documented in the function's doc comments.
 
 3. **`http:ClientConfiguration` reformatted to multiline** — The single-line initializer was expanded to one field per line for readability, and `auth: config.auth` was added as part of Sanitization 4.
 
 ---
 
-## Sanitization 7 - Change HTTP version default to HTTP/1.1 (`types.bal`)
-
-**File:** `ballerina/types.bal`
-**Record:** `ConnectionConfig`
-**Field:** `httpVersion`
-
-**Before:**
-```ballerina
-http:HttpVersion httpVersion = http:HTTP_2_0;
-```
-
-**After:**
-```ballerina
-http:HttpVersion httpVersion = http:HTTP_1_1;
-```
-
-**Reason:** The Hugging Face router endpoint does not support HTTP/2, causing connection failures when the default HTTP/2 configuration is used.
-
----
-
-## Sanitization 8 - Make systemFingerprint nullable in ChatCompletion and CompletionFinal (`types.bal`)
+## Sanitization 7 - Make systemFingerprint nullable in ChatCompletion and CompletionFinal (`types.bal`)
 
 **File:** `ballerina/types.bal`
 **Records:** `ChatCompletion`, `CompletionFinal`
@@ -243,7 +223,7 @@ string? systemFingerprint;
 
 ---
 
-## Sanitization 9 - Make TextMessage.content nullable (`types.bal`)
+## Sanitization 8 - Make TextMessage.content nullable (`types.bal`)
 
 **File:** `ballerina/types.bal`
 **Record:** `TextMessage`

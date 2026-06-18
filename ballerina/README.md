@@ -32,6 +32,8 @@ To use the Hugging Face TGI connector, you need a Hugging Face account and an AP
 
 You can connect to Hugging Face serverless inference or deploy your own TGI instance.
 
+Recommended: `https://router.huggingface.co/hf-inference` for the full TGI API, or `https://router.huggingface.co` for OpenAI-style endpoints only.
+
 | Base URL | What works |
 |---|---|
 | `https://router.huggingface.co` | OpenAI-style `/v1/chat/completions`, `/v1/models` |
@@ -65,12 +67,13 @@ token = "<Your Hugging Face API Token>"
 serviceUrl = "https://router.huggingface.co/hf-inference"
 ```
 
-2. Initialize the connector using `tgi:ConnectionConfig` with the access token. When `serviceUrl` is omitted, the client defaults to `https://router.huggingface.co/hf-inference`.
+2. Initialize the connector using the target service URL and `tgi:ConnectionConfig` with the access token:
 
 ```ballerina
 configurable string token = ?;
+configurable string serviceUrl = ?;
 
-final tgi:Client hfClient = check new ({
+final tgi:Client hfClient = check new (serviceUrl, {
     auth: {
         token: token
     }

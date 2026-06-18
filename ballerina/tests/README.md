@@ -9,6 +9,8 @@ The tests can run against two different environments:
 
 ## Hugging Face Router Base URLs
 
+Recommended: `https://router.huggingface.co/hf-inference` for the full TGI API, or `https://router.huggingface.co` for OpenAI-style endpoints only.
+
 | Base URL | What works |
 |---|---|
 | `https://router.huggingface.co` | OpenAI-style `/v1/chat/completions`, `/v1/models` |
