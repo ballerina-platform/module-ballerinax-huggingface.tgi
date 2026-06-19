@@ -1,0 +1,32 @@
+[package]
+distribution = "2201.12.0"
+org = "ballerinax"
+name = "huggingface.tgi"
+version = "1.0.0"
+license = ["Apache-2.0"]
+authors = ["Ballerina"]
+keywords = [
+    "AI/Chat",
+    "AI/Text Generation",
+    "AI/LLM",
+    "Hugging Face",
+    "TGI",
+    "OpenAI-Compatible",
+    "Streaming",
+    "Inference",
+    "Llama",
+    "Mistral",
+    "Vendor/Hugging Face",
+    "Cost/Free",
+    "Type/Connector",
+    "Name/Hugging Face TGI Connector"
+]
+icon = "icon.png"
+repository = "https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi"
+
+[build-options]
+observabilityIncluded = true
+
+[platform.java21]
+graalvmCompatible = true
+
