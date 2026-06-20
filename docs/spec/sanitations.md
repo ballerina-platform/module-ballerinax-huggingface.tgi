@@ -1,6 +1,6 @@
 _Author_: @HasithaErandika \
 _Created_: 2026-06-10 \
-_Updated_: 2026-06-18 \
+_Updated_: 2026-06-20 \
 _Edition_: Swan Lake
 
 # Sanitation for OpenAPI specification
@@ -250,6 +250,32 @@ public type TextMessage record {
 ```
 
 **Reason:** When a tool call is returned in a chat completion response, the `content` field may be `null` (OpenAI API spec). This change allows proper deserialization of tool-calling responses.
+
+---
+
+## Sanitization 9 - Rename `FunctionDefinition.arguments` to `parameters` (`types.bal`)
+
+**File:** `ballerina/types.bal`
+**Record:** `FunctionDefinition`
+**Field:** `arguments` → `parameters`
+
+**Before:**
+```ballerina
+map<json> arguments?;
+```
+
+**After:**
+```ballerina
+@jsondata:Name {value: "parameters"}
+map<json> parameters?;
+```
+
+**Reason:** The OpenAI tool-calling specification requires the tool schema field to be named
+`"parameters"` in serialized JSON. The auto-generated connector used `arguments` with no
+`@jsondata:Name` override, causing it to serialize as `"arguments"` instead. OpenAI-compatible
+providers such as Cerebras and Groq validate the tool schema strictly and reject requests
+containing `"arguments"`, breaking all tool-calling functionality on `/v1/chat/completions`.
+Tracked in issue #8829.
 
 ---
 

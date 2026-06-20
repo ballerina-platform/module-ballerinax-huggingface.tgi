@@ -65,7 +65,8 @@ public type FunctionName record {
 public type FunctionDefinition record {
     string name;
     string? description?;
-    anydata arguments;
+    @jsondata:Name {value: "parameters"}
+    map<json> parameters?;
 };
 
 # Provides a set of configurations for controlling the behaviours when communicating with a remote HTTP endpoint.
