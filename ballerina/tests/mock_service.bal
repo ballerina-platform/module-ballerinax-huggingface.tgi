@@ -28,11 +28,21 @@ service "/" on mockListener {
 
     // POST /generate
     resource function post generate(http:Caller caller, http:Request req) returns error? {
-        json payload = {generated_text: "once upon a time"};
+        json requestPayload = check req.getJsonPayload();
+        json|error wantsDetails = requestPayload.parameters.details;
+        json? details = wantsDetails is boolean && wantsDetails
+            ? {
+                finish_reason: "length",
+                generated_tokens: 4,
+                prefill: [{id: 1, text: "Once", logprob: ()}],
+                tokens: [{id: 2, text: " upon", logprob: -0.4, special: false}]
+            }
+            : ();
+        json payload = {generated_text: "once upon a time", details};
         check caller->respond(payload);
     }
 
-    // POST /generate_stream  — returns a minimal SSE response
+    // POST /generate_stream - returns a minimal SSE response
     resource function post generate_stream(http:Caller caller, http:Request req) returns error? {
         http:Response res = new;
         res.setHeader("Content-Type", "text/event-stream");
@@ -90,6 +100,88 @@ service "/" on mockListener {
 
     // POST /v1/chat/completions
     resource function post v1/chat/completions(http:Caller caller, http:Request req) returns error? {
+        json requestPayload = check req.getJsonPayload();
+        json|error toolsField = requestPayload.tools;
+        json|error toolChoiceField = requestPayload.tool_choice;
+        json|error messagesField = requestPayload.messages;
+        boolean hasTools = toolsField is json[] && toolsField.length() > 0;
+
+        boolean hasToolResultMessage = false;
+        if messagesField is json[] {
+            foreach json m in messagesField {
+                if m is map<json> && m["role"] == "tool" {
+                    hasToolResultMessage = true;
+                }
+            }
+        }
+
+        string? forcedToolName = ();
+        if toolChoiceField is map<json> {
+            json fn = toolChoiceField["function"];
+            if fn is map<json> {
+                json fnName = fn["name"];
+                if fnName is string {
+                    forcedToolName = fnName;
+                }
+            }
+        }
+        boolean toolChoiceIsNone = toolChoiceField is string && toolChoiceField == "none";
+
+        json message;
+        string finishReason;
+        if hasToolResultMessage {
+            // Second turn of a tool-calling round trip: answer using the tool's result, don't call again.
+            // Some real providers (observed live on Cerebras) redundantly include an empty "tool_calls": []
+            // array alongside real content on a plain-text answer — simulate that here to make sure the
+            // connector still resolves this to a TextMessage, not a zero-tool-call ToolCallMessage.
+            message = {role: "assistant", content: "The current weather in Paris is 18C and cloudy.", tool_calls: []};
+            finishReason = "stop";
+        } else if toolChoiceIsNone {
+            message = {role: "assistant", content: "Deep Learning is a subset of machine learning.", tool_calls: []};
+            finishReason = "stop";
+        } else if forcedToolName is string {
+            message = {
+                role: "assistant",
+                tool_calls: [
+                    {
+                        id: "call_mock-002",
+                        'type: "function",
+                        "function": {
+                            name: forcedToolName,
+                            arguments: string `{"amount": 100, "from": "USD", "to": "EUR"}`
+                        }
+                    }
+                ]
+            };
+            finishReason = "tool_calls";
+        } else if hasTools {
+            message = {
+                role: "assistant",
+                tool_calls: [
+                    {
+                        id: "call_mock-001",
+                        'type: "function",
+                        "function": {
+                            name: "get_current_weather",
+                            arguments: string `{"location": "Paris", "unit": "celsius"}`
+                        }
+                    }
+                ]
+            };
+            finishReason = "tool_calls";
+        } else {
+            message = {role: "assistant", content: "Deep Learning is a subset of machine learning.", tool_calls: []};
+            finishReason = "stop";
+        }
+
+        json|error wantsLogprobs = requestPayload.logprobs;
+        json? logprobs = wantsLogprobs is boolean && wantsLogprobs
+            ? {
+                content: [
+                    {token: "Deep", logprob: -0.12, top_logprobs: [{token: "Deep", logprob: -0.12}]}
+                ]
+            }
+            : ();
         json payload = {
             id: "chatcmpl-mock-001",
             created: 1706270835,
@@ -97,8 +189,9 @@ service "/" on mockListener {
             system_fingerprint: "mock-fp",
             choices: [{
                 index: 0,
-                message: {role: "assistant", content: "Deep Learning is a subset of machine learning."},
-                finish_reason: "stop"
+                message,
+                logprobs,
+                finish_reason: finishReason
             }],
             usage: {prompt_tokens: 10, completion_tokens: 20, total_tokens: 30}
         };
@@ -134,7 +227,7 @@ service "/" on mockListener {
         check caller->respond("# HELP tgi_requests_total Total number of requests\n# TYPE tgi_requests_total counter\ntgi_requests_total 42\n");
     }
 
-    // POST /invocations  (SageMaker compat)
+    // POST /invocations 
     resource function post invocations(http:Caller caller, http:Request req) returns error? {
         json payload = {generated_text: "sagemaker generated text"};
         check caller->respond(payload);
