@@ -11,13 +11,14 @@ HuggingFace Text Generation Inference (TGI) is a high-performance serving framew
 
 The `ballerinax/huggingface.tgi` connector provides a Ballerina client for the TGI REST API, covering:
 
-- OpenAI-compatible chat via `/v1/chat/completions` (drop-in replacement for OpenAI SDK users)
+- OpenAI-compatible chat via `/v1/chat/completions`, including tool/function calling, forced tool choice, and logprobs (drop-in replacement for OpenAI SDK users)
 - OpenAI-compatible completions via `/v1/completions`
 - TGI native generation via `/generate` with full sampling control
 - Streaming generation via `/generate_stream` (Server-Sent Events)
 - Tokenization via `/tokenize` and `/chat_tokenize`
 - Model & server info via `/info` and `/v1/models`
-- Health check via `/health`
+- Health check via `/health` and Prometheus metrics via `/metrics`
+- SageMaker-compatible inference via `/invocations`
 
 Note: For text embeddings, reranking, and classification, see `ballerinax/huggingface.tei`.
 
@@ -43,21 +44,28 @@ To use the Hugging Face connector, you need a Hugging Face account and an API to
 
 ### Step 3: Choose a Model Endpoint
 
-You can connect to Hugging Face serverless inference or deploy your own TGI instance.
-
-Recommended: `https://router.huggingface.co/hf-inference` for the full TGI API, or `https://router.huggingface.co` for OpenAI-style endpoints only.
+You can connect to Hugging Face serverless inference or deploy your own TGI instance. Verified live against
+the real API:
 
 | Base URL | What works |
 |---|---|
-| `https://router.huggingface.co` | OpenAI-style `/v1/chat/completions`, `/v1/models` |
-| `https://router.huggingface.co/hf-inference` | Full TGI API: `/generate`, `/health`, `/info`, `/tokenize`, `/v1/chat/completions`, etc. |
+| `https://router.huggingface.co` | OpenAI-style `/v1/chat/completions`, routed to **any** Inference Provider (Cerebras, Groq, Nscale, Together, etc.) based on the model. This is the only base URL needed for chat completions and tool calling. |
+| Your own **TGI instance** (Docker, or a dedicated Hugging Face Inference Endpoint URL) | The full native TGI API: `/generate`, `/health`, `/info`, `/tokenize`, `/generate_stream`, etc. |
+
+> **Important:** `https://router.huggingface.co/hf-inference` is **not** a usable base URL for this connector
+> against most models. It is one specific Inference Provider (HF's own infrastructure), which as of mid-2025
+> [mostly serves small/legacy models](https://huggingface.co/docs/inference-providers/en/providers/hf-inference)
+> (BERT, GPT-2, etc.), not modern chat models — and even where a model is hosted there, the native TGI paths
+> (`/generate`, `/info`, `/health`, `/tokenize`) and the OpenAI-style paths (`/v1/chat/completions`,
+> `/v1/models`) are not exposed through the shared router at that path. To reach Groq, Cerebras, Nscale, or
+> any other third-party provider, use the bare `https://router.huggingface.co` base URL with `/v1/chat/completions`.
 
 > **Note:** The legacy `https://api-inference.huggingface.co` endpoint has been decommissioned and no longer resolves.
 
 You can either:
 
-- Use **Hugging Face Inference Providers** at `https://router.huggingface.co/hf-inference` for serverless inference on hosted models (requires a token with Inference Providers permission).
-- Deploy your own **TGI instance** (Docker, Hugging Face Inference Endpoint, etc.) and point the connector at your service URL.
+- Use **Hugging Face Inference Providers** at `https://router.huggingface.co` for serverless chat completions across any provider (requires a token with Inference Providers permission).
+- Deploy your own **TGI instance** (Docker, Hugging Face Inference Endpoint, etc.) and point the connector at your service URL to use the full native TGI API (`/generate`, `/tokenize`, `/health`, `/info`, etc.).
 
 ## Quickstart
 
@@ -77,7 +85,7 @@ import ballerinax/huggingface.tgi;
 
 ```toml
 token = "<Your Hugging Face API Token>"
-serviceUrl = "https://router.huggingface.co/hf-inference"
+serviceUrl = "https://router.huggingface.co"
 ```
 
 2. Initialize the connector using the target service URL and `tgi:ConnectionConfig` with the access token:
@@ -110,6 +118,10 @@ public function main() returns error? {
 ```
 
 #### Generate text
+
+`/generate` and the other native TGI endpoints (`/health`, `/info`, `/tokenize`, `/generate_stream`, etc.)
+are not exposed through `https://router.huggingface.co` — they require a dedicated TGI deployment
+(Docker, or a Hugging Face Inference Endpoint), so use that deployment's own URL as `serviceUrl` for this call:
 
 ```ballerina
 public function main() returns error? {
@@ -229,4 +241,3 @@ All contributors are encouraged to read the [Ballerina Code of Conduct](https://
 * For example demonstrations of the usage, go to [Ballerina By Examples](https://ballerina.io/learn/by-example/).
 * Chat live with us via our [Discord server](https://discord.gg/ballerinalang).
 * Post all technical questions on Stack Overflow with the [#ballerina](https://stackoverflow.com/questions/tagged/ballerina) tag.
-* 

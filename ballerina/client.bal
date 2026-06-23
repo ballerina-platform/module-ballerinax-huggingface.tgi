@@ -9,9 +9,12 @@ public isolated client class Client {
     final http:Client clientEp;
     # Gets invoked to initialize the `connector`.
     #
-    # + serviceUrl - URL of the target service. 
-    #                Recommended: `https://router.huggingface.co/hf-inference` for the full TGI API,
-    #                or `https://router.huggingface.co` for OpenAI-style endpoints only.
+    # + serviceUrl - URL of the target service.
+    #                Use `https://router.huggingface.co` for chat completions and tool calling, routed to
+    #                any Inference Provider (Cerebras, Groq, Nscale, Together, etc.) based on the model.
+    #                Use the URL of your own TGI deployment (Docker, or a Hugging Face Inference Endpoint)
+    #                for the native TGI API (`/generate`, `/health`, `/info`, `/tokenize`, etc.) — these
+    #                are not exposed through the shared router.
     # + config - The configurations to be used when initializing the `connector` 
     # + return - An error if connector initialization failed 
     public isolated function init(string serviceUrl, ConnectionConfig config = {}) returns error? {
@@ -164,9 +167,10 @@ public isolated client class Client {
 
     # Get model info
     #
-    # + headers - Headers to be sent with the request 
-    # + return - Served model info 
-    resource isolated function get v1/models(map<string|string[]> headers = {}) returns ModelInfo|error {
+    # + headers - Headers to be sent with the request
+    # + return - Served model info when called against a dedicated TGI server, or the full model
+    #            catalog (`ModelList`) when called against `https://router.huggingface.co`
+    resource isolated function get v1/models(map<string|string[]> headers = {}) returns ModelInfo|ModelList|error {
         string resourcePath = string `/v1/models`;
         return self.clientEp->get(resourcePath, headers);
     }

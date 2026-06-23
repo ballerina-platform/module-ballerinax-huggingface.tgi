@@ -14,6 +14,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import ballerina/data.jsondata;
 import ballerina/http;
 import ballerina/io;
 import ballerina/os;
@@ -34,8 +35,8 @@ function initClient() returns Client|error {
     return new (mockServiceUrl, {auth: {token}});
 }
 
-configurable string serviceUrl = "https://router.huggingface.co/hf-inference";
-configurable string modelId = "tgi";
+configurable string serviceUrl = "https://router.huggingface.co";
+configurable string modelId = "openai/gpt-oss-120b";
 
 // Health-check
 @test:Config {
@@ -59,18 +60,26 @@ function testGetModelInfo() returns error? {
     io:println("Model info: ", info);
 }
 
-// OpenAI model info  —  GET /v1/models
+// OpenAI model info - GET /v1/models
+// A dedicated TGI server returns a single ModelInfo; the shared router returns a ModelList catalog.
 @test:Config {
-    groups: ["live_tests", "mock_tests", "info"]
+    groups: ["live_tests", "live_router", "mock_tests", "info"]
 }
 function testGetOpenAIModelInfo() returns error? {
-    ModelInfo modelInfo = check tgiClient->/v1/models();
-    test:assertNotEquals(modelInfo.id, "", "model id should not be empty");
-    test:assertEquals(modelInfo.'object, "model");
+    ModelInfo|ModelList modelInfo = check tgiClient->/v1/models();
+    if modelInfo is ModelInfo {
+        test:assertNotEquals(modelInfo.id, "", "model id should not be empty");
+        test:assertEquals(modelInfo.'object, "model");
+    }
+    if modelInfo is ModelList {
+        test:assertEquals(modelInfo.'object, "list", "Router response should be a model list");
+        test:assertTrue(modelInfo.data.length() > 0, "Model catalog should not be empty");
+        test:assertNotEquals(modelInfo.data[0].id, "", "First catalog entry should have a non-empty id");
+    }
     io:println("OpenAI model info: ", modelInfo);
 }
 
-// Token generation  —  POST /generate  (basic)
+// Token generation - POST /generate  (basic)
 @test:Config {
     groups: ["live_tests", "mock_tests", "generate"]
 }
@@ -103,6 +112,14 @@ function testGenerateWithDetails() returns error? {
     };
     GenerateResponse resp = check tgiClient->/generate.post(req);
     test:assertNotEquals(resp.generatedText, "", "Generated text should not be empty");
+
+    Details? details = resp?.details;
+    test:assertTrue(details is Details, "details should be populated when parameters.details: true is requested");
+    if details is Details {
+        test:assertTrue(details.generatedTokens > 0, "generatedTokens should be positive");
+        test:assertTrue(details.tokens.length() > 0, "tokens should have at least one entry");
+        test:assertTrue(details.prefill.length() > 0, "prefill should have at least one entry");
+    }
 }
 
 // Token generation  —  POST /generate  (with sampling params)
@@ -209,7 +226,7 @@ function testChatTokenize() returns error? {
 
 // Chat completions  —  POST /v1/chat/completions  (basic)
 @test:Config {
-    groups: ["live_tests", "mock_tests", "chat"]
+    groups: ["live_tests", "live_router", "mock_tests", "chat"]
 }
 function testChatCompletionsBasic() returns error? {
     ChatRequest req = {
@@ -228,7 +245,7 @@ function testChatCompletionsBasic() returns error? {
 
 // Chat completions  —  multi-turn conversation
 @test:Config {
-    groups: ["live_tests", "mock_tests", "chat"]
+    groups: ["live_tests", "live_router", "mock_tests", "chat"]
 }
 function testChatCompletionsMultiTurn() returns error? {
     ChatRequest req = {
@@ -247,7 +264,7 @@ function testChatCompletionsMultiTurn() returns error? {
 
 // Chat completions  —  usage stats present
 @test:Config {
-    groups: ["live_tests", "mock_tests", "chat"]
+    groups: ["live_tests", "live_router", "mock_tests", "chat"]
 }
 function testChatCompletionsUsage() returns error? {
     ChatRequest req = {
@@ -266,7 +283,7 @@ function testChatCompletionsUsage() returns error? {
 
 // Chat completions  —  with tools (function calling)
 @test:Config {
-    groups: ["live_tests", "mock_tests", "chat", "tools"]
+    groups: ["live_tests", "live_router", "mock_tests", "chat", "tools"]
 }
 function testChatCompletionsWithTools() returns error? {
     Tool weatherTool = {
@@ -274,7 +291,7 @@ function testChatCompletionsWithTools() returns error? {
         'function: {
             name: "get_current_weather",
             description: "Get the current weather in a given location",
-            arguments: {
+            parameters: {
                 'type: "object",
                 properties: {
                     location: {'type: "string", description: "The city and state, e.g. San Francisco, CA"},
@@ -288,16 +305,175 @@ function testChatCompletionsWithTools() returns error? {
         messages: [{role: "user", content: "What's the weather like in Paris?"}],
         model: modelId,
         tools: [weatherTool],
-        toolChoice: "auto",
+        toolChoice: "required",
         maxTokens: 128
     };
     ChatCompletion completion = check tgiClient->/v1/chat/completions.post(req);
     test:assertTrue(completion.choices.length() > 0, "Should have at least one choice");
+
+    OutputMessage message = completion.choices[0].message;
+    ToolCall[]? toolCalls = message?.toolCalls;
+    test:assertTrue(toolCalls is ToolCall[] && toolCalls.length() > 0,
+            "Model should respond with a tool call when toolChoice is 'required'");
+    if toolCalls is ToolCall[] && toolCalls.length() > 0 {
+        ToolCallFunction calledFunction = toolCalls[0].'function;
+        test:assertEquals(calledFunction.name, "get_current_weather", "Model should call the offered tool");
+        json|error arguments = calledFunction.arguments.fromJsonString();
+        test:assertTrue(arguments is map<json>, "Tool call arguments should be a JSON-encoded object string");
+        if arguments is map<json> {
+            test:assertTrue(arguments.hasKey("location"), "Arguments should contain the 'location' parameter");
+        }
+    }
+}
+
+// Chat completions  —  full tool-calling round trip: model calls a tool, client sends the tool's
+// result back (using Message.toolCallId — see Sanitization 13), model answers using that result.
+@test:Config {
+    groups: ["live_tests", "live_router", "mock_tests", "chat", "tools"]
+}
+function testChatCompletionsToolCallRoundTrip() returns error? {
+    Tool weatherTool = {
+        'type: "function",
+        'function: {
+            name: "get_current_weather",
+            description: "Get the current weather in a given location",
+            parameters: {
+                'type: "object",
+                properties: {
+                    location: {'type: "string", description: "The city and state, e.g. San Francisco, CA"}
+                },
+                required: ["location"]
+            }
+        }
+    };
+    string question = "What is the weather like in Paris?";
+    ChatRequest firstReq = {
+        messages: [{role: "user", content: question}],
+        model: modelId,
+        tools: [weatherTool],
+        toolChoice: "required",
+        maxTokens: 150
+    };
+    ChatCompletion firstCompletion = check tgiClient->/v1/chat/completions.post(firstReq);
+    OutputMessage firstMessage = firstCompletion.choices[0].message;
+    ToolCall[]? firstToolCalls = firstMessage?.toolCalls;
+    test:assertTrue(firstToolCalls is ToolCall[] && firstToolCalls.length() > 0, "First turn should produce a tool call");
+    if firstToolCalls is ToolCall[] && firstToolCalls.length() > 0 {
+        ToolCall toolCall = firstToolCalls[0];
+        Message[] history = [
+            {role: "user", content: question},
+            {role: "assistant", toolCalls: firstToolCalls},
+            {
+                role: "tool",
+                toolCallId: toolCall.id,
+                content: string `{"temperature": "18C", "condition": "cloudy"}`
+            }
+        ];
+        ChatRequest secondReq = {
+            messages: history,
+            model: modelId,
+            tools: [weatherTool],
+            maxTokens: 150
+        };
+        ChatCompletion secondCompletion = check tgiClient->/v1/chat/completions.post(secondReq);
+        OutputMessage secondMessage = secondCompletion.choices[0].message;
+        ToolCall[]? secondToolCalls = secondMessage?.toolCalls;
+        test:assertTrue(secondToolCalls is () || secondToolCalls.length() == 0,
+                "Second turn should produce a final text answer once the tool result is supplied, not another tool call");
+        test:assertTrue(secondMessage?.content is string, "Second turn should have text content");
+        io:println("Round-trip final answer: ", secondMessage?.content);
+    }
+}
+
+// Chat completions  —  toolChoice "none" must prevent tool calls even when tools are offered
+@test:Config {
+    groups: ["live_tests", "live_router", "mock_tests", "chat", "tools"]
+}
+function testChatCompletionsToolChoiceNone() returns error? {
+    Tool weatherTool = {
+        'type: "function",
+        'function: {
+            name: "get_current_weather",
+            description: "Get the current weather in a given location",
+            parameters: {
+                'type: "object",
+                properties: {
+                    location: {'type: "string"}
+                },
+                required: ["location"]
+            }
+        }
+    };
+    ChatRequest req = {
+        messages: [{role: "user", content: "What is the weather like in Paris?"}],
+        model: modelId,
+        tools: [weatherTool],
+        toolChoice: "none",
+        maxTokens: 150
+    };
+    ChatCompletion completion = check tgiClient->/v1/chat/completions.post(req);
+    OutputMessage message = completion.choices[0].message;
+    ToolCall[]? toolCalls = message?.toolCalls;
+    test:assertTrue(toolCalls is () || toolCalls.length() == 0,
+            "toolChoice 'none' should prevent a tool call even when tools are offered");
+}
+
+// Chat completions  —  forcing a specific tool among several must call exactly that one,
+// even when the user's question matches a different offered tool
+@test:Config {
+    groups: ["live_tests", "live_router", "mock_tests", "chat", "tools"]
+}
+function testChatCompletionsForcedSpecificTool() returns error? {
+    Tool weatherTool = {
+        'type: "function",
+        'function: {
+            name: "get_current_weather",
+            description: "Get the current weather in a given location",
+            parameters: {
+                'type: "object",
+                properties: {
+                    location: {'type: "string"}
+                },
+                required: ["location"]
+            }
+        }
+    };
+    Tool currencyTool = {
+        'type: "function",
+        'function: {
+            name: "convert_currency",
+            description: "Convert an amount from one currency to another",
+            parameters: {
+                'type: "object",
+                properties: {
+                    amount: {'type: "number"},
+                    "from": {'type: "string"},
+                    to: {'type: "string"}
+                },
+                required: ["amount", "from", "to"]
+            }
+        }
+    };
+    ChatRequest req = {
+        messages: [{role: "user", content: "What is the weather like in Paris?"}],
+        model: modelId,
+        tools: [weatherTool, currencyTool],
+        toolChoice: {'function: {name: "convert_currency"}},
+        maxTokens: 150
+    };
+    ChatCompletion completion = check tgiClient->/v1/chat/completions.post(req);
+    OutputMessage message = completion.choices[0].message;
+    ToolCall[]? toolCalls = message?.toolCalls;
+    test:assertTrue(toolCalls is ToolCall[] && toolCalls.length() > 0, "A forced tool_choice should produce a tool call");
+    if toolCalls is ToolCall[] && toolCalls.length() > 0 {
+        test:assertEquals(toolCalls[0].'function.name, "convert_currency",
+                "The forced tool should be called even though the question matches a different offered tool");
+    }
 }
 
 // Chat completions  —  with logprobs
 @test:Config {
-    groups: ["live_tests", "mock_tests", "chat"]
+    groups: ["live_tests", "live_router", "mock_tests", "chat"]
 }
 function testChatCompletionsWithLogprobs() returns error? {
     ChatRequest req = {
@@ -309,6 +485,13 @@ function testChatCompletionsWithLogprobs() returns error? {
     };
     ChatCompletion completion = check tgiClient->/v1/chat/completions.post(req);
     test:assertTrue(completion.choices.length() > 0, "Should have at least one choice");
+
+    ChatCompletionLogprobs? logprobs = completion.choices[0]?.logprobs;
+    test:assertTrue(logprobs is ChatCompletionLogprobs, "logprobs should be populated when logprobs: true is requested");
+    if logprobs is ChatCompletionLogprobs {
+        test:assertTrue(logprobs.content.length() > 0, "logprobs.content should have at least one entry");
+        test:assertNotEquals(logprobs.content[0].token, "", "logprob token should not be empty");
+    }
 }
 
 // Legacy completions  —  POST /v1/completions
@@ -402,6 +585,21 @@ function testChatRequestPenalties() returns error? {
     };
     test:assertEquals(req?.frequencyPenalty, 1.5);
     test:assertEquals(req?.presencePenalty, -1.0);
+}
+
+// ChatRequest — toolChoice must not default to "auto" when tools are omitted; strict OpenAI-compatible
+// providers (e.g. Cerebras) reject a request that has tool_choice set but no tools array.
+@test:Config {
+    groups: ["params"]
+}
+function testChatRequestToolChoiceOmittedByDefault() returns error? {
+    ChatRequest req = {
+        messages: [{role: "user", content: "test"}]
+    };
+    test:assertEquals(req?.toolChoice, (), "toolChoice should default to () when tools are not used");
+    map<json> serialized = check jsondata:toJson(req).ensureType();
+    test:assertTrue(!serialized.hasKey("tool_choice") || serialized["tool_choice"] is (),
+            "tool_choice should be absent or null when not set, never a non-null value like \"auto\"");
 }
 
 // Token type fields
