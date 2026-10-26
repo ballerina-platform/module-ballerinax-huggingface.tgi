@@ -5,12 +5,9 @@ name = "huggingface.tgi"
 version = "2.0.0"
 license = ["Apache-2.0"]
 authors = ["Ballerina"]
-keywords = []
-# icon = "icon.png" # TODO: update icon.png
+keywords = ["Vendor/Hugging Face", "Area/AI & Machine Learning", "Type/Connector"]
+icon = "icon.png"
 repository = "https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi"
 
 [build-options]
 observabilityIncluded = true
-
-[platform.java21]
-graalvmCompatible = true
