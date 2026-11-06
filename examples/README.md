@@ -2,13 +2,22 @@
 
 The `ballerinax/huggingface.tgi` connector provides practical examples illustrating usage in various scenarios.
 
-[//]: # (TODO: Add examples)
-1. 
-2. 
+1. **[Text generation with a health check](https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi/tree/main/examples/text_generation_health_check)** - Check the health of a TGI server, read the model information and generate text from a prompt.
+
+2. **[Chat assistant with tokenization](https://github.com/ballerina-platform/module-ballerinax-huggingface.tgi/tree/main/examples/chat_assistant_tokenization)** - Count the tokens of a templated chat prompt and ask the served model for a chat completion.
 
 ## Prerequisites
 
-[//]: # (TODO: Add prerequisites)
+1. Start a TGI server and note its URL as described in the [Setup guide](https://central.ballerina.io/ballerinax/huggingface.tgi/latest#setup-guide).
+
+2. For each example, create a `Config.toml` file with the related configuration. Here's an example of how your Config.toml file should look:
+
+```toml
+serviceUrl = "<tgi-server-url>"
+token = "<access-token>"
+```
+
+Each example lists the additional values it needs in its own README.
 
 ## Running an example
 
